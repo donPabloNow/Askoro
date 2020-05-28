@@ -1,10 +1,39 @@
 var pieces, radius, fft, analyzer, mapMouseX, mapMouseY, audio, toggleBtn, uploadBtn, uploadedAudio, uploadAnim;
 var colorPalette = ["white", "black", "black", "black"];
 var uploadLoading = false;
+var record, btn, chunks;
+
+navigator.getUserMedia({audio:true}, stream=>{handleStream(stream)}, error=>{ handleError(error) });
+
+function handleStream(stream){
+    record= new MediaRecorder(stream)
+    chunks = []
+    record.onstop = function(e){
+        var blob = new Blob(chunks, {'type': 'audio/ogg; codecs=opus'})
+        chunks= []
+        var audioURL = URL.createObjectURL(blob)
+        console.log(audioURL)
+        console.log(chunks)
+    }
+    record.ondataavailable = function(e){
+        chunks.push(e.data);
+
+
+    }
+
+}
+
+function handleError(e){
+    console.log(e)
+}
+
+
 
 /*=============================================
   SETUP
 =============================================*/
+
+
 
 function preload() {
 	audio = loadSound("audio/voice.mp3");
@@ -16,10 +45,8 @@ function uploaded(file) {
 }
 
 
-function uploadedAudioPlay(audioFile) {
 
-	uploadLoading = false;
-
+function uploadedAudioPlay(audioFile) { uploadLoading = false; 
 	if (audio.isPlaying()) {
 		audio.pause();
 	}
@@ -33,12 +60,11 @@ function setup() {
 	uploadAnim = select('#uploading-animation');
 
 	createCanvas(windowWidth, windowHeight);
-
 	toggleBtn = createButton("Speak");
 
 	toggleBtn.addClass("toggle-btn");
-
-	toggleBtn.mousePressed(toggleAudio);
+    btn = toggleBtn;
+	toggleBtn.mouseClicked(toggleMic);
 
 	analyzer = new p5.Amplitude();
 	fft = new p5.FFT();
@@ -123,12 +149,37 @@ function draw() {
 }
 
 
-function toggleAudio() {
-	if (audio.isPlaying()) {
-		audio.pause();
-	} else {
-		audio.play();
-	}
+function btnInit(text){
+    btn.remove()
+    btn = createButton(text)
+    btn.addClass('toggle-btn')
+    btn.mousePressed(toggleMic)
+
+}
+
+function toggleMic() {
+    console.log('clicked!')
+    try{
+        // on click switch state
+        // after a second click process the query
+
+        if(record.state == 'recording'){
+            // stop recording
+            btnInit('speak')
+            record.stop()
+            console.log(record.state)
+        }
+        else if(record.state == 'inactive'){
+            // start recording
+            btnInit('stop')
+            record.start()
+            console.log(record.state)
+
+        }
+
+    }catch(e){
+        console.log(e)
+    }
 }
 
 
