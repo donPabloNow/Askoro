@@ -5,6 +5,7 @@
   "main": "main.js",
   "dependencies": {
     "electron": "^9.0.0",
+    "ffmpeg": "0.0.4",
     "gtts": "^0.2.1",
     "node-wit": "^5.0.0",
     "node-wolfram": "0.0.1",

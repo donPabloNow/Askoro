@@ -1,36 +1,9 @@
 var pieces, radius, fft, analyzer, mapMouseX, mapMouseY, audio, toggleBtn, uploadBtn, uploadedAudio, uploadAnim, mic;
-var colorPalette = ["white", "black", "black", "black"];
+var colorPalette = ["#2B303C", "white", "white", "white"];
 var uploadLoading = false;
-var record, btn, chunks;
+var recorder, btn, chunks;
 
-//navigator.getUserMedia({audio:true}, stream=>{handleStream(stream)}, error=>{ handleError(error) });
-
-//function handleStream(stream){
-    //record= new MediaRecorder(stream)
-    //chunks = []
-
-    //record.onstop = function(e){
-        //var buff = new Blob(chunks, {'type': 'audio/ogg; codecs=opus'})
-        //chunks= []
-        //var audioURL = URL.createObjectURL(buff)
-        //audio.srcObject = audioURL;
-        //console.log(audioURL)
-        //console.log(chunks)
- //   }
- //   record.ondataavailable = function(e){
- //       chunks.push(e.data);
- //       console.log(e.data)
- //   }
-
-
-//}
-//
-//function handleError(e){
-//    console.log(e)
-//}
-//
-//
-
+var ffmpeg = require('ffmpeg')
 
 
 /*=============================================
@@ -40,7 +13,6 @@ var record, btn, chunks;
 
 
 function preload() {
-    mic = new p5.AudioIn();
     audio = loadSound("audio/voice.mp3");
 }
 
@@ -51,7 +23,7 @@ function uploaded(file) {
 
 
 
-function uploadedAudioPlay(audioFile) { uploadLoading = false; 
+function uploadedAudioPlay(audioFile) { uploadLoading = false;
 	if (audio.isPlaying()) {
 		audio.pause();
 	}
@@ -83,8 +55,7 @@ function setup() {
   DRAW
 =============================================*/
 function draw() {
-    console.log(mic.getLevel())
-	// Add a loading animation for the uploaded track
+   	// Add a loading animation for the uploaded track
 	// -----------------------------------------------
 	if (uploadLoading) {
 		uploadAnim.addClass('is-visible');
@@ -163,23 +134,69 @@ function btnInit(text){
 
 }
 
+
+function saveAudio(audioURL){
+    try{
+        var process = new  ffmpeg(audioURL)
+        process.then(audio => {
+            audio.fnExtractSoundToMP3('../audio/query.mp3', (error, file)=>{
+                (error) ? console.log(error) : console.log('Audio File: ' + file)
+        })
+    })
+
+
+    }catch(e){
+        console.log(e)
+    }
+}
+
+
+
+navigator.mediaDevices.getUserMedia({ audio: true })
+.then(stream => {
+    const options = {type: 'audio/mpeg-3'};
+    recorder = new MediaRecorder(stream, options);
+
+    console.log(recorder)
+
+    var audioChunks = [];
+
+    recorder.addEventListener("dataavailable", event => {
+        audioChunks.push(event.data);
+    });
+
+    recorder.addEventListener("stop", () => {
+        var audioBlob = new Blob(audioChunks);
+        var audioUrl = URL.createObjectURL(audioBlob);
+        console.log(audioUrl)
+        saveAudio(audioUrl)
+        var audio = new Audio(audioUrl);
+        audio.play();
+    });
+
+
+});
+
+
 function toggleMic() {
     console.log('clicked!')
     try{
         // on click switch state
         // after a second click process the query
-
-        if(record.state == 'recording'){
+        if(recorder.state == 'recording'){
             // stop recording
             btnInit('speak')
-            mic.start();
+            recorder.stop();
+            console.log(recorder.state)
 
         }
-        else if(record.state == 'inactive'){
+        else if(recorder.state == 'inactive'){
             // start recording
             btnInit('stop')
-        }
+            recorder.start()
+            console.log(recorder.state)
 
+        }
 
     }catch(e){
         console.log(e)

@@ -219,7 +219,7 @@ canvas {
 
 .toggle-btn {
 	background: transparent;
-	color: black;
+	color: darkgray;
 	right: 2vmax;
 }
 
@@ -228,7 +228,7 @@ canvas {
 }
 
 .toggle-btn:hover {
-	color: darkgray;
+	color: white;
 }
 
 @media screen and (max-width: 55em) {
