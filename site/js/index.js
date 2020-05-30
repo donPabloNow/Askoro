@@ -1,9 +1,12 @@
 var pieces, radius, fft, analyzer, mapMouseX, mapMouseY, audio, toggleBtn, uploadBtn, uploadedAudio, uploadAnim, mic;
 var colorPalette = ["#2B303C", "white", "white", "white"];
 var uploadLoading = false;
-var recorder, btn, chunks;
+var recorder, btn;
+var audioChunks = [];
 
-var ffmpeg = require('ffmpeg')
+const ffmpeg = require('ffmpeg')
+const electron = require('electron')
+const ipc = electron.ipcRenderer;
 
 
 /*=============================================
@@ -22,14 +25,20 @@ function uploaded(file) {
 }
 
 
+ipc.on('answer', (e, audioFile)=>{
+    audio = loadSound(audioFile, ()=>{
+        audio.play();
 
-function uploadedAudioPlay(audioFile) { uploadLoading = false;
+    })
+})
+
+function uploadedAudioPlay(audioFile) {
+    uploadLoading = false;
 	if (audio.isPlaying()) {
 		audio.pause();
 	}
-
 	audio = audioFile;
-	audio.loop();
+
 }
 
 
@@ -43,7 +52,8 @@ function setup() {
 	toggleBtn.addClass("toggle-btn");
     btn = toggleBtn;
 	toggleBtn.mouseClicked(toggleMic);
-
+    var mic = new p5.AudioIn();
+    mic.start()
 	analyzer = new p5.Amplitude();
 	fft = new p5.FFT();
 
@@ -135,31 +145,27 @@ function btnInit(text){
 }
 
 
-function saveAudio(audioURL){
-    try{
-        var process = new  ffmpeg(audioURL)
-        process.then(audio => {
-            audio.fnExtractSoundToMP3('../audio/query.mp3', (error, file)=>{
-                (error) ? console.log(error) : console.log('Audio File: ' + file)
-        })
-    })
-
-
-    }catch(e){
-        console.log(e)
+function saveAudio(audioBlob){
+    let reader = new FileReader();
+    reader.readAsArrayBuffer(audioBlob)
+    reader.onload = ()=>{
+        var buff = new Buffer(reader.result);
+        ipc.send('query', 'query.mp3', buff);
+        console.log(`sending query; size: ${audioBlob.size}`)
     }
+    audioChunks = [];
 }
+
+
 
 
 
 navigator.mediaDevices.getUserMedia({ audio: true })
 .then(stream => {
-    const options = {type: 'audio/mpeg-3'};
+    const options = {mimeType: 'audio/webm'};
     recorder = new MediaRecorder(stream, options);
 
     console.log(recorder)
-
-    var audioChunks = [];
 
     recorder.addEventListener("dataavailable", event => {
         audioChunks.push(event.data);
@@ -168,14 +174,14 @@ navigator.mediaDevices.getUserMedia({ audio: true })
     recorder.addEventListener("stop", () => {
         var audioBlob = new Blob(audioChunks);
         var audioUrl = URL.createObjectURL(audioBlob);
-        console.log(audioUrl)
-        saveAudio(audioUrl)
-        var audio = new Audio(audioUrl);
-        audio.play();
+        //console.log(audioUrl)
+        saveAudio(audioBlob)
+
     });
 
 
 });
+
 
 
 function toggleMic() {

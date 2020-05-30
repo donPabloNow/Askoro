@@ -3,28 +3,6 @@
  */
 
 
-//keys
-let wit_key = process.env.WIT_KEY;
-let wa_key = process.env.WA_KEY;
-//apis
-let Wit = null;
-let interactive = null;
-
-const wolfram = require('node-wolfram');
-const wa_client = new wolfram(wa_key);
-const gTTS = require('gtts');
-
-
-try {
-  // if running from repo
-  Wit = require('../').Wit;
-  interactive = require('../').interactive;
-} catch (e) {
-  Wit = require('node-wit').Wit;
-  interactive = require('node-wit').interactive;
-}
-
-
 const handleMessage =async (obj) => {
     //const getJoke = firstValue(traits, 'getJoke');
     //const greetings = firstValue(traits, 'wit$greetings');
