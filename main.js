@@ -47,39 +47,36 @@ function convert(input, output, callback) {
 }
 
 
-function speechRecognition(path){
-    // request to wit speech api for speech recognition
-    var dataString = path;
+async function speechRecognition(path){
+        return new Promise(resolve =>{
+            // request to wit speech api for speech recognition
+            var dataString = path;
 
-    var headers = {
-        'Authorization': `Bearer ${process.env.WIT_KEY}`,
-        'Content-Type': 'audio/mpeg3'
-    };
+            var headers = {
+                'Authorization': `Bearer ${process.env.WIT_KEY}`,
+                'Content-Type': 'audio/mpeg3'
+            };
 
+            var options = {
+                url: 'https://api.wit.ai/speech?v=20200513/',
+                method: 'POST',
+                headers: headers,
+                body: fs.createReadStream(dataString)
+            };
 
-    var options = {
-        url: 'https://api.wit.ai/speech?v=20200513/',
-        method: 'POST',
-        headers: headers,
-        body: fs.createReadStream(dataString)
-    };
+            var q;
 
-    var q;
-
-    return new Promise((res, rej)=>{
-     request.post(options, (err, resp,  b)=>{
-            if (!err && resp.statusCode == 200) {
-                console.log('Speech Recognition Result : ' +  b  + ' end of speechRecognition');
-                q = b['text']
-                res(q)
-            }
-
-        });
+            request.post(options,  (err, resp,  b)=>{
+                    if (!err && resp.statusCode == 200) {
+                        var body = JSON.parse(b)
+                        q = body.text
+                        resolve(q)
+                    }
+            })
 
     })
+
 }
-
-
 
 
 ipc.on('query', async (e, path, buff)=>{
@@ -87,17 +84,16 @@ ipc.on('query', async (e, path, buff)=>{
     fs.createWriteStream(path).write(buff)
 
     // call converion method
-    convert('site/audio/query.webm', 'site/audio/query.mp3', function(err){
+    convert('site/audio/query.webm', 'site/audio/query.mp3', async function(err){
        if(!err) {
-           console.log('conversion complete');
+            console.log('conversion complete');
+
+            // get the question as text (speech recognition method)
+            var question = await speechRecognition('site/audio/query.mp3')
+            console.log("Prompt: " + question)
        }
     });
 
-
-
-    // get the question as text (speech recognition method)
-    var question = await speechRecognition('site/audio/query.mp3')
-    console.log(question)
 
 //     // query and then receive the answer from wolfram
 //     wit_client.message(question, {}).then(obj=>{

@@ -164,7 +164,7 @@ function saveAudio(audioBlob){
 
 navigator.mediaDevices.getUserMedia({ audio: true })
 .then(stream => {
-    const options = {mimeType: 'audio/webm'};
+    const options = {mimeType: 'audio/webm; codecs=opus'};
     recorder = new MediaRecorder(stream, options);
 
     console.log(recorder)
