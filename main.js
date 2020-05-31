@@ -32,40 +32,40 @@ const wit_client = new Wit({accessToken: wit_key});
 
 
 ipc.on('query', (e, path, buff)=>{
-    fs.createWriteStream('site/audio/query.webm').write(buff)
+    fs.createWriteStream(path).write(buff)
 
     // query and then receive the answer from wolfram
-    wit_client.message(question, {}).then(obj=>{
-        console.log(obj);
-        console.log(obj['entities']);
-        question = obj['_text'];
+    // wit_client.message(question, {}).then(obj=>{
+    //    console.log(obj);
+    //    console.log(obj['entities']);
+    //    question = obj['_text'];
 
-        console.log(`Question: ${question}`);
+    //    console.log(`Question: ${question}`);
 
-        wa_client.query(question,  function(err, result){
-            if(err)
-                console.log(err);
-            else
-            {
+    //    wa_client.query(question,  function(err, result){
+    //        if(err)
+    //            console.log(err);
+    //        else
+    //        {
 
-                for(var a=0; a<result.queryresult.pod.length; a++)
-                {
-                    var pod = result.queryresult.pod[a];
-                    if(pod.$.title.toLowerCase().includes('result')){
-                        var subpod = pod.subpod[0];
-                        console.log(subpod.plaintext[0])
-                        var tts = new gTTS(subpod.plaintext[0], 'en')
-                        tts.save('site/audio/answer.mp3', function(err, res){
-                            if(err){throw new Error(err)}
-                            else
-                            { console.log('Play voice.mp3!')}
-                        })
-                    }
-                }
-            }
-        })
+    //            for(var a=0; a<result.queryresult.pod.length; a++)
+    //            {
+    //                var pod = result.queryresult.pod[a];
+    //                if(pod.$.title.toLowerCase().includes('result')){
+    //                    var subpod = pod.subpod[0];
+    //                    console.log(subpod.plaintext[0])
+    //                    var tts = new gTTS(subpod.plaintext[0], 'en')
+    //                    tts.save('site/audio/answer.mp3', function(err, res){
+    //                        if(err){throw new Error(err)}
+    //                        else
+    //                        { console.log('Play voice.mp3!')}
+    //                    })
+    //                }
+    //            }
+    //        }
+    //    })
 
-    })
+    //})
     // finally, send the audiofile to the renderer
     e.sender.send('answer','audio/answer.mp3')
 })

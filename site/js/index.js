@@ -16,7 +16,7 @@ const ipc = electron.ipcRenderer;
 
 
 function preload() {
-    audio = loadSound("audio/voice.mp3");
+//    audio = loadSound("audio/voice.mp3");
 }
 
 function uploaded(file) {
@@ -52,6 +52,8 @@ function setup() {
 	toggleBtn.addClass("toggle-btn");
     btn = toggleBtn;
 	toggleBtn.mouseClicked(toggleMic);
+
+
     var mic = new p5.AudioIn();
     mic.start()
 	analyzer = new p5.Amplitude();
@@ -150,7 +152,7 @@ function saveAudio(audioBlob){
     reader.readAsArrayBuffer(audioBlob)
     reader.onload = ()=>{
         var buff = new Buffer(reader.result);
-        ipc.send('query', 'query.mp3', buff);
+        ipc.send('query', 'site/audio/query.webm', buff);
         console.log(`sending query; size: ${audioBlob.size}`)
     }
     audioChunks = [];

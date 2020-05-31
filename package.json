@@ -6,6 +6,8 @@
   "dependencies": {
     "electron": "^9.0.0",
     "ffmpeg": "0.0.4",
+    "@ffmpeg-installer/ffmpeg": "^1.0.13",
+    "fluent-ffmpeg": "^2.1.2",
     "gtts": "^0.2.1",
     "node-wit": "^5.0.0",
     "node-witai-speech": "^1.0.2",
