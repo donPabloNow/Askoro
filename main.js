@@ -3,7 +3,11 @@ const electron = require('electron');
 const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const ipc = electron.ipcMain;
-const fs = require('fs')
+
+// basic reqs
+var request = require('request');
+var fs = require('fs')
+var ffmpeg = require('./ffmpeg')
 
 
 //keys
@@ -29,45 +33,108 @@ try {
 const wit_client = new Wit({accessToken: wit_key});
 
 
+// converts webm to mp3 (need this for request to wit ai speech since they don't support webm)
+function convert(input, output, callback) {
+    ffmpeg(input)
+        .output(output)
+        .on('end', function() {
+            console.log('conversion ended');
+            callback(null);
+        }).on('error', function(err){
+            console.log('error: ' + err);
+            callback(err);
+        }).run();
+}
 
 
-ipc.on('query', (e, path, buff)=>{
+function speechRecognition(path){
+    // request to wit speech api for speech recognition
+    var dataString = path;
+
+    var headers = {
+        'Authorization': `Bearer ${process.env.WIT_KEY}`,
+        'Content-Type': 'audio/mpeg3'
+    };
+
+
+    var options = {
+        url: 'https://api.wit.ai/speech?v=20200513/',
+        method: 'POST',
+        headers: headers,
+        body: fs.createReadStream(dataString)
+    };
+
+    var q;
+
+    return new Promise((res, rej)=>{
+     request.post(options, (err, resp,  b)=>{
+            if (!err && resp.statusCode == 200) {
+                console.log('Speech Recognition Result : ' +  b  + ' end of speechRecognition');
+                q = b['text']
+                res(q)
+            }
+
+        });
+
+    })
+}
+
+
+
+
+ipc.on('query', async (e, path, buff)=>{
+    // save user query as audio
     fs.createWriteStream(path).write(buff)
 
-    // query and then receive the answer from wolfram
-    // wit_client.message(question, {}).then(obj=>{
-    //    console.log(obj);
-    //    console.log(obj['entities']);
-    //    question = obj['_text'];
+    // call converion method
+    convert('site/audio/query.webm', 'site/audio/query.mp3', function(err){
+       if(!err) {
+           console.log('conversion complete');
+       }
+    });
 
-    //    console.log(`Question: ${question}`);
 
-    //    wa_client.query(question,  function(err, result){
-    //        if(err)
-    //            console.log(err);
-    //        else
-    //        {
 
-    //            for(var a=0; a<result.queryresult.pod.length; a++)
-    //            {
-    //                var pod = result.queryresult.pod[a];
-    //                if(pod.$.title.toLowerCase().includes('result')){
-    //                    var subpod = pod.subpod[0];
-    //                    console.log(subpod.plaintext[0])
-    //                    var tts = new gTTS(subpod.plaintext[0], 'en')
-    //                    tts.save('site/audio/answer.mp3', function(err, res){
-    //                        if(err){throw new Error(err)}
-    //                        else
-    //                        { console.log('Play voice.mp3!')}
-    //                    })
-    //                }
-    //            }
-    //        }
-    //    })
+    // get the question as text (speech recognition method)
+    var question = await speechRecognition('site/audio/query.mp3')
+    console.log(question)
 
-    //})
-    // finally, send the audiofile to the renderer
-    e.sender.send('answer','audio/answer.mp3')
+//     // query and then receive the answer from wolfram
+//     wit_client.message(question, {}).then(obj=>{
+//         console.log(obj);
+//         console.log(obj['entities']);
+//         query = obj['_text'];
+
+//         console.log(`Question: ${query}`);
+
+//         wa_client.query(query,  function(err, result){
+//            if(err)
+//                console.log(err);
+//            else
+//            {
+
+//                for(var a=0; a<result.queryresult.pod.length; a++)
+//                {
+//                    var pod = result.queryresult.pod[a];
+//                    if(pod.$.title.toLowerCase().includes('result')){
+//                        var subpod = pod.subpod[0];
+//                        console.log(subpod.plaintext[0])
+//                        var tts = new gTTS(subpod.plaintext[0], 'en')
+//                        tts.save('site/audio/answer.mp3', function(err, res){
+//                            if(err){throw new Error(err)}
+//                            else{
+//                                 console.log('Play voice.mp3!')
+//                                 // finally, send the audiofile to the renderer
+//                                 e.sender.send('answer','audio/answer.mp3')
+
+//                            }
+//                        })
+//                    }
+//                }
+//            }
+//        })
+
+//     })
 })
 
 app.whenReady().then(()=>{
@@ -85,3 +152,4 @@ app.whenReady().then(()=>{
     window.webContents.openDevTools();
     window.setMenu(null)
 })
+

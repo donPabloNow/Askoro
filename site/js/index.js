@@ -151,7 +151,7 @@ function saveAudio(audioBlob){
     let reader = new FileReader();
     reader.readAsArrayBuffer(audioBlob)
     reader.onload = ()=>{
-        var buff = new Buffer(reader.result);
+        var buff = new Buffer.from(reader.result);
         ipc.send('query', 'site/audio/query.webm', buff);
         console.log(`sending query; size: ${audioBlob.size}`)
     }
