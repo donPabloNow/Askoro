@@ -82,55 +82,54 @@ async function speechRecognition(path){
 ipc.on('query', async (e, path, buff)=>{
     // save user query as audio
     fs.createWriteStream(path).write(buff)
-
+    var question;
     // call converion method
     convert('site/audio/query.webm', 'site/audio/query.mp3', async function(err){
        if(!err) {
             console.log('conversion complete');
 
             // get the question as text (speech recognition method)
-            var question = await speechRecognition('site/audio/query.mp3')
+            question = await speechRecognition('site/audio/query.mp3')
             console.log("Prompt: " + question)
-       }
-    });
 
+            // query and then receive the answer from wolfram
+            wit_client.message(question, {}).then(obj=>{
+                console.log(obj);
+                console.log(obj['entities']);
+                query = obj['_text'];
 
-//     // query and then receive the answer from wolfram
-//     wit_client.message(question, {}).then(obj=>{
-//         console.log(obj);
-//         console.log(obj['entities']);
-//         query = obj['_text'];
+                console.log(`Question: ${query}`);
 
-//         console.log(`Question: ${query}`);
+                wa_client.query(query,  function(err, result){
+                   if(err)
+                       console.log(err);
+                   else
+                   {
 
-//         wa_client.query(query,  function(err, result){
-//            if(err)
-//                console.log(err);
-//            else
-//            {
+                       for(var a=0; a<result.queryresult.pod.length; a++)
+                       {
+                           var pod = result.queryresult.pod[a];
+                           if(pod.$.title.toLowerCase().includes('result')){
+                               var subpod = pod.subpod[0];
+                               console.log(subpod.plaintext[0])
+                               var tts = new gTTS(subpod.plaintext[0], 'en')
+                               tts.save('site/audio/answer.mp3', function(err, res){
+                                   if(err){throw new Error(err)}
+                                   else{
+                                        console.log('Play voice.mp3!')
+                                        // finally, send the audiofile to the renderer
+                                        e.sender.send('answer','audio/answer.mp3')
 
-//                for(var a=0; a<result.queryresult.pod.length; a++)
-//                {
-//                    var pod = result.queryresult.pod[a];
-//                    if(pod.$.title.toLowerCase().includes('result')){
-//                        var subpod = pod.subpod[0];
-//                        console.log(subpod.plaintext[0])
-//                        var tts = new gTTS(subpod.plaintext[0], 'en')
-//                        tts.save('site/audio/answer.mp3', function(err, res){
-//                            if(err){throw new Error(err)}
-//                            else{
-//                                 console.log('Play voice.mp3!')
-//                                 // finally, send the audiofile to the renderer
-//                                 e.sender.send('answer','audio/answer.mp3')
+                                   }
+                               })
+                           }
+                       }
+                   }
+               })
+            })
+               }
+            });
 
-//                            }
-//                        })
-//                    }
-//                }
-//            }
-//        })
-
-//     })
 })
 
 app.whenReady().then(()=>{
