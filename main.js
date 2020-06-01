@@ -1,8 +1,11 @@
-// electron and fs
+// libs
 const electron = require('electron');
 const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 const ipc = electron.ipcMain;
+const wolfram = require('node-wolfram');
+const gTTS = require('gtts');
+
 
 // basic reqs
 var request = require('request');
@@ -18,10 +21,7 @@ let wa_key = process.env.WA_KEY;
 let Wit = null;
 let interactive = null;
 
-const wolfram = require('node-wolfram');
-const wa_client = new wolfram(wa_key);
-const gTTS = require('gtts');
-
+var nores = false;
 
 try {
   // if running from repo
@@ -30,7 +30,9 @@ try {
   Wit = require('node-wit').Wit;
 }
 
+// init clients
 const wit_client = new Wit({accessToken: wit_key});
+const wa_client = new wolfram(wa_key);
 
 
 // converts webm to mp3 (need this for request to wit ai speech since they don't support webm)
@@ -78,61 +80,24 @@ async function speechRecognition(path){
 
 }
 
-
-function query(e, question){
-
-           // query and then receive the answer from wolfram
-            wit_client.message(question, {}).then(obj=>{
-                console.log(obj);
-                console.log(obj['entities']);
-
-                wa_client.query(question,  function(err, result){
-                   if(err)
-                       console.log(err);
-                   else
-                   {
-                        var res = 'full';
-                        console.log(result.queryresult.pod)
-                        if(typeof result.queryresult.pod.length === 'undefined'){
-                            res = 'empty';
-                        }else{
-
-                        // traversing the result to get the data we want
-                        for(var a=0; a<result.queryresult.pod.length; a++)
-                        {
-                           var pod = result.queryresult.pod[a];
-                           if(pod.$.title.toLowerCase().includes('result')){
-                                var subpod = pod.subpod[0];
-                                res = 'full'
-                                var tts = new gTTS(subpod.plaintext[0], 'en')
-                                tts.save('site/audio/answer.mp3', function(err, res){
-                                    if(err){console.log(err)}
-                                    else{
-                                        console.log(subpod.plaintext[0])
-                                        console.log('Playing answer')
-                                        // finally, send the audiofile to the renderer
-                                        e.sender.send('play','audio/answer.mp3')
-                                    }
-                                })
+function playres(e, text){
+  var tts = new gTTS(text, 'en')
+  tts.save('site/audio/answer.mp3', function(err, res){
+    if(err){console.log(err)}
+    else{
+      console.log(text)
+      console.log('Playing answer')
+      // finally, send the audiofile to the renderer 
+      e.sender.send('play','audio/answer.mp3') 
+      }
+  })
 
 
-                          }
-                        }
-
-                        if(res == 'empty' ) {nores(e,question)}
-
-                   }
-                   }
-               })
-            })
 }
 
-
-function playres(e, question, text){
-}
 
 // handle no result from wolfram
-function nores(e, question){
+function noresult(e, question){
     var tts = new gTTS(`Sorry nothing found for ${question}`, 'en')
     tts.save('site/audio/error.mp3', function(err, res){
         if(err){console.log(err)}
@@ -146,6 +111,50 @@ function nores(e, question){
 
 
 }
+
+
+
+
+function query(e, question){
+           var text = ''; 
+           // query and then receive the answer from wolfram
+            wit_client.message(question, {}).then(obj=>{
+                console.log(obj);
+                console.log(obj['entities']);
+
+                wa_client.query(question,  function(err, result){
+                   if(err)
+                       console.log(err);
+                   else
+                   {
+                        console.log(result.queryresult.pod.length)
+                        if(typeof result.queryresult.pod.length === 'undefined' || result.queryresult.pod.length === 0){
+                            nores = true;
+                        }else{
+
+                          // traversing the result to get the data we want
+                          for(var a=0; a < result.queryresult.pod.length; a++){
+                            var pod = result.queryresult.pod[a];
+                            if(pod.$.title.toLowerCase().includes('result')){
+                                  var subpod = pod.subpod[0];
+                                  text = subpod.plaintext[0]
+                                  nores = false
+                            }
+                          }
+                        }                              
+                    }
+                    // call nores after we are done changing nores value
+                    console.log('!res : ' + nores)
+                    if(text.length != 0){playres(e, text)}
+                    else if(text.length == 0){noresult(e, question)}
+
+
+                   })
+          })
+}
+
+
+
 
 ipc.on('query', async (e, path, buff)=>{
 

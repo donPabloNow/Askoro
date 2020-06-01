@@ -1,5 +1,5 @@
 var pieces, radius, fft, analyzer, mapMouseX, mapMouseY, audio, toggleBtn, uploadBtn, uploadedAudio, uploadAnim, mic;
-var colorPalette = ["#2B303C", "white", "white", "white"];
+var colorPalette = ["#4bd16f", "white", "white", "white"];
 var uploadLoading = false;
 var recorder, btn;
 var audioChunks = [];
@@ -112,7 +112,7 @@ function draw() {
 		push();
 		stroke(colorPalette[1]);
 		rotate(frameCount * 0.002);
-		strokeWeight(0.5);
+		strokeWeight(1);
         //polygon(mapbass + i, mapbass - i, 15* i, 2);
 		pop();
 
@@ -120,7 +120,7 @@ function draw() {
 		/*----------  MID  ----------*/
 		push();
 		stroke(colorPalette[2]);
-		strokeWeight(0.2);
+		strokeWeight(0.5);
 		polygon(mapMid + i / 2, mapMid - i * 2, 10* i, 7);
 		pop();
 
@@ -128,7 +128,7 @@ function draw() {
 		/*----------  TREMBLE  ----------*/
 		push();
 		stroke(colorPalette[3]);
-		strokeWeight(0.6);
+		strokeWeight(0.5);
 		scale(mouseX * 0.0005);
 		polygon(mapTreble + i / 2, mapTreble - i / 2, 50 * i / 2, 3);
 		pop();
