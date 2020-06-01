@@ -16,21 +16,22 @@ const ipc = electron.ipcRenderer;
 
 
 function preload() {
-//    audio = loadSound("audio/voice.mp3");
+    audio = loadSound("audio/hello.mp3");
 }
 
 function uploaded(file) {
 	uploadLoading = true;
 	uploadedAudio = loadSound(file.data, uploadedAudioPlay);
+
 }
 
 
-ipc.on('answer', (e, audioFile)=>{
+ipc.on('play', (e, audioFile)=>{
     audio = loadSound(audioFile, ()=>{
         audio.play();
-
     })
 })
+
 
 function uploadedAudioPlay(audioFile) {
     uploadLoading = false;
@@ -53,10 +54,9 @@ function setup() {
     btn = toggleBtn;
 	toggleBtn.mouseClicked(toggleMic);
 
+    audio.play()
 
-    var mic = new p5.AudioIn();
-    mic.start()
-	analyzer = new p5.Amplitude();
+    analyzer = new p5.Amplitude();
 	fft = new p5.FFT();
 
 }

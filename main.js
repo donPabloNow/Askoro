@@ -79,10 +79,80 @@ async function speechRecognition(path){
 }
 
 
+function query(e, question){
+
+           // query and then receive the answer from wolfram
+            wit_client.message(question, {}).then(obj=>{
+                console.log(obj);
+                console.log(obj['entities']);
+
+                wa_client.query(question,  function(err, result){
+                   if(err)
+                       console.log(err);
+                   else
+                   {
+                        var res = 'full';
+                        console.log(result.queryresult.pod)
+                        if(typeof result.queryresult.pod.length === 'undefined'){
+                            res = 'empty';
+                        }else{
+
+                        // traversing the result to get the data we want
+                        for(var a=0; a<result.queryresult.pod.length; a++)
+                        {
+                           var pod = result.queryresult.pod[a];
+                           if(pod.$.title.toLowerCase().includes('result')){
+                                var subpod = pod.subpod[0];
+                                res = 'full'
+                                var tts = new gTTS(subpod.plaintext[0], 'en')
+                                tts.save('site/audio/answer.mp3', function(err, res){
+                                    if(err){console.log(err)}
+                                    else{
+                                        console.log(subpod.plaintext[0])
+                                        console.log('Playing answer')
+                                        // finally, send the audiofile to the renderer
+                                        e.sender.send('play','audio/answer.mp3')
+                                    }
+                                })
+
+
+                          }
+                        }
+
+                        if(res == 'empty' ) {nores(e,question)}
+
+                   }
+                   }
+               })
+            })
+}
+
+
+function playres(e, question, text){
+}
+
+// handle no result from wolfram
+function nores(e, question){
+    var tts = new gTTS(`Sorry nothing found for ${question}`, 'en')
+    tts.save('site/audio/error.mp3', function(err, res){
+        if(err){console.log(err)}
+        else{
+            console.log('Playing result')
+            // finally, send the audiofile to the renderer
+            e.sender.send('play','audio/error.mp3')
+
+        }
+    })
+
+
+}
+
 ipc.on('query', async (e, path, buff)=>{
+
     // save user query as audio
     fs.createWriteStream(path).write(buff)
     var question;
+
     // call converion method
     convert('site/audio/query.webm', 'site/audio/query.mp3', async function(err){
        if(!err) {
@@ -91,44 +161,32 @@ ipc.on('query', async (e, path, buff)=>{
             // get the question as text (speech recognition method)
             question = await speechRecognition('site/audio/query.mp3')
             console.log("Prompt: " + question)
+            console.log(typeof question)
 
-            // query and then receive the answer from wolfram
-            wit_client.message(question, {}).then(obj=>{
-                console.log(obj);
-                console.log(obj['entities']);
-                query = obj['_text'];
+            if(typeof question==='undefined'){
+                var tts = new gTTS('Sorry, I did not understand. Please repeat your question', 'en')
+                filepath = 'site/audio/error.mp3';
+                tts.save(filepath, (err, res)=>{
+                    // play error file in the render process
+                    if(!err) e.sender.send('play', 'audio/error.mp3')
+                    else{console.log(err)}
+                })
+            }else{
+                // repeat question to the user
+                var tts = new gTTS(`Looking for  ${question}`, 'en')
+                tts.save('site/audio/askedQuestion.mp3', (err, res)=>{
+                    // play error file in the render process
+                    if(!err) {
+                        e.sender.send('play','audio/askedQuestion.mp3')
+                        query(e,question)
+                    }
+                    else{console.log(err)}
+                })
 
-                console.log(`Question: ${query}`);
+            }
 
-                wa_client.query(query,  function(err, result){
-                   if(err)
-                       console.log(err);
-                   else
-                   {
-
-                       for(var a=0; a<result.queryresult.pod.length; a++)
-                       {
-                           var pod = result.queryresult.pod[a];
-                           if(pod.$.title.toLowerCase().includes('result')){
-                               var subpod = pod.subpod[0];
-                               console.log(subpod.plaintext[0])
-                               var tts = new gTTS(subpod.plaintext[0], 'en')
-                               tts.save('site/audio/answer.mp3', function(err, res){
-                                   if(err){throw new Error(err)}
-                                   else{
-                                        console.log('Play voice.mp3!')
-                                        // finally, send the audiofile to the renderer
-                                        e.sender.send('answer','audio/answer.mp3')
-
-                                   }
-                               })
-                           }
-                       }
-                   }
-               })
-            })
-               }
-            });
+        }
+    });
 
 })
 
