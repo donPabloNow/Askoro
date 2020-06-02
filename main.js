@@ -109,7 +109,6 @@ function noresult(e, question){
         }
     })
 
-
 }
 
 
@@ -202,8 +201,9 @@ ipc.on('query', async (e, path, buff)=>{
 app.whenReady().then(()=>{
 
     const window = new BrowserWindow({
-        width: 800,
-        height: 600,
+        width: 1080,
+        height: 720,
+        icon: __dirname + '/icon.png',
         webPreferences:{
             nodeIntegration: true
         }
