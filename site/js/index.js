@@ -1,4 +1,4 @@
-var pieces, radius, fft, analyzer, mapMouseX, mapMouseY, audio, toggleBtn, uploadBtn, uploadedAudio, uploadAnim, mic;
+var pieces, radius, fft, analyzer, mapMouseX, mapMouseY, audio, toggleBtn, uploadBtn, uploadedAudio, uploadAnim, mic, isPlaying;
 var colorPalette = ["#4bd16f", "white", "white", "white"];
 var uploadLoading = false;
 var recorder, btn;
@@ -7,6 +7,27 @@ var audioChunks = [];
 const ffmpeg = require('ffmpeg')
 const electron = require('electron')
 const ipc = electron.ipcRenderer;
+
+
+    ipc.on('play', (e, audioFile)=>{
+        audio = loadSound(audioFile, ()=>{
+            audio.play();
+            if(audioFile === 'audio/answer.mp3' || audioFile === 'audio/error.mp3'){
+                console.log(audio.duration())
+                ipc.send('duration', audio.duration())
+
+            }
+        })
+    })
+
+    ipc.on('btn-state', (e, str)=>{
+        if(str === 'disable'){
+            btn.hide()
+        }else if(str == 'enable'){
+            btn.show()
+        }
+    })
+
 
 
 /*=============================================
@@ -24,14 +45,6 @@ function uploaded(file) {
 	uploadedAudio = loadSound(file.data, uploadedAudioPlay);
 
 }
-
-
-ipc.on('play', (e, audioFile)=>{
-    audio = loadSound(audioFile, ()=>{
-        audio.play();
-    })
-})
-
 
 function uploadedAudioPlay(audioFile) {
     uploadLoading = false;
@@ -54,8 +67,11 @@ function setup() {
     btn = toggleBtn;
 	toggleBtn.mouseClicked(toggleMic);
 
-    audio.play()
+    btn.hide()
+    setTimeout(()=>btn.show(), 6000)
 
+    audio.play()
+    isPlaying = audio.isPlaying();
     analyzer = new p5.Amplitude();
 	fft = new p5.FFT();
 
@@ -67,7 +83,8 @@ function setup() {
   DRAW
 =============================================*/
 function draw() {
-   	// Add a loading animation for the uploaded track
+
+    // Add a loading animation for the uploaded track
 	// -----------------------------------------------
 	if (uploadLoading) {
 		uploadAnim.addClass('is-visible');
@@ -75,7 +92,7 @@ function draw() {
 		uploadAnim.removeClass('is-visible');
 	}
 
-	background(colorPalette[0]);
+    background(colorPalette[0]);
 
 	translate(windowWidth / 2, windowHeight / 2);
 
@@ -145,7 +162,6 @@ function btnInit(text){
     btn.mousePressed(toggleMic)
 
 }
-
 
 function saveAudio(audioBlob){
     let reader = new FileReader();
@@ -226,3 +242,6 @@ function polygon(x, y, radius, npoints) {
 	}
 	endShape(CLOSE);
 }
+
+
+
