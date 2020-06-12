@@ -232,7 +232,6 @@ app.whenReady().then(() => {
 
 
 	window.loadFile('site/index.html')
-	window.webContents.openDevTools();
 	window.setMenu(null)
 })
 

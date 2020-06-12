@@ -6,6 +6,7 @@
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.0.13",
     "electron": "^9.0.0",
+    "express": "^4.17.1",
     "ffmpeg": "0.0.4",
     "fluent-ffmpeg": "^2.1.2",
     "get-audio-duration": "^2.0.2-beta.0",
