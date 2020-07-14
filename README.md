@@ -13,3 +13,7 @@ To use this app you must have a wolfram alpha api key. You can get one by creati
 - [ ] Clone this directory
 - [ ] Run `npm install` in the current directory
 - [ ] Run `npm start` to start the app
+
+## Video
+
+ https://www.youtube.com/watch?v=B_mXqRBayrw
